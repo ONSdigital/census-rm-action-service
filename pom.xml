@@ -1,12 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>actionsvc</artifactId>
-    <version>10.49.37-SNAPSHOT</version>
+    <artifactId>census-rm-actionsvc</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>CTP : ActionService</name>
-    <description>CTP : ActionService</description>
+    <name>CTP : CensusRMActionService</name>
+    <description>CTP : CensusRMActionService</description>
 
     <properties>
         <commonbom.version>10.49.1</commonbom.version>
@@ -21,11 +21,11 @@
     </parent>
 
     <scm>
-        <connection>scm:git:https://github.com/ONSdigital/rm-action-service</connection>
-        <developerConnection>scm:git:https://github.com/ONSdigital/rm-action-service
+        <connection>scm:git:https://github.com/ONSdigital/census-rm-action-service</connection>
+        <developerConnection>scm:git:https://github.com/ONSdigital/census-rm-action-service
         </developerConnection>
-        <url>https://github.com/ONSdigital/rm-action-service</url>
-        <tag>actionsvc-10.49.30</tag>
+        <url>https://github.com/ONSdigital/census-rm-action-service</url>
+        <tag>census-rm-actionsvc-0.0.1</tag>
     </scm>
 
     <profiles>
