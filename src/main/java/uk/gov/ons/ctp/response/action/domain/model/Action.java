@@ -84,7 +84,7 @@ public class Action implements Serializable {
   @Column(name = "optlockversion")
   private int optLockVersion;
 
-  /** Priority of action NOTE: the names need to match those in the outbound xsd */
+  /** Priority of action NOTE: the names need to match those in the outbound actionsvc */
   public enum ActionPriority {
     HIGHEST(1, "highest"),
     HIGHER(2, "higher"),
