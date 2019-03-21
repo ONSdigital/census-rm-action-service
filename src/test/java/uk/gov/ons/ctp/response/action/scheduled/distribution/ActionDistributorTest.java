@@ -69,8 +69,8 @@ public class ActionDistributorTest {
   @Mock(name = "businessActionProcessingService")
   private ActionProcessingService businessActionProcessingService;
 
-  @Mock(name = "socialActionProcessingService")
-  private ActionProcessingService socialActionProcessingService;
+  @Mock(name = "censusActionProcessingService")
+  private ActionProcessingService censusActionProcessingService;
 
   @Mock private ActionCaseRepository actionCaseRepo;
 
@@ -121,22 +121,6 @@ public class ActionDistributorTest {
     }
   }
 
-  /** Happy Path with 1 ActionRequest and 1 ActionCancel for a B case */
-  @Test
-  public void testHappyPathBCase() throws Exception {
-    // Given setUp
-    when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(2)));
-
-    // When
-    actionDistributor.distribute();
-
-    // Then
-    verify(businessActionProcessingService, times(1)).processActionRequests(any());
-    verify(businessActionProcessingService, times(1)).processActionCancel(any());
-
-    verify(lock, times(1)).unlock();
-  }
-
   /** Happy Path with 2 ActionRequests and 2 ActionCancels for a H case */
   @Test
   public void testHappyPathHCase() throws Exception {
@@ -148,8 +132,8 @@ public class ActionDistributorTest {
     actionDistributor.distribute();
 
     // Then
-    verify(socialActionProcessingService, times(2)).processActionRequests(any());
-    verify(socialActionProcessingService, times(2)).processActionCancel(any());
+    verify(censusActionProcessingService, times(2)).processActionRequests(any());
+    verify(censusActionProcessingService, times(2)).processActionCancel(any());
 
     verify(lock, times(2)).unlock();
   }

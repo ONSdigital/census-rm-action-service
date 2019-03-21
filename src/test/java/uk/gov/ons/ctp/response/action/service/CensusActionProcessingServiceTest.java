@@ -26,7 +26,7 @@ import uk.gov.ons.ctp.response.action.service.decorator.context.ActionRequestCon
 import uk.gov.ons.ctp.response.casesvc.representation.CaseDetailsDTO;
 
 @RunWith(MockitoJUnitRunner.class)
-public class SocialActionProcessingServiceTest {
+public class CensusActionProcessingServiceTest {
 
   @Mock ActionRepository actionRepository;
 
@@ -38,7 +38,7 @@ public class SocialActionProcessingServiceTest {
 
   @Mock ActionRequestContextFactory decoratorContextFactory;
 
-  @InjectMocks private SocialActionProcessingService socialActionProcessingService;
+  @InjectMocks private CensusActionProcessingService censusActionProcessingService;
 
   private static final UUID ACTION_CASEID = UUID.fromString("7bc5d41b-0549-40b3-ba76-42f6d4cf3991");
 
@@ -67,7 +67,7 @@ public class SocialActionProcessingServiceTest {
     when(actionRepository.findByCaseId(ACTION_CASEID)).thenReturn(actions);
     when(actionTypeRepository.findByName(SOCIAL_ICF)).thenReturn(actionType);
     when(caseSvcClientService.getCase(ACTION_CASEID)).thenReturn(caseDetail);
-    socialActionProcessingService.cancelFieldWorkReminder(caseDetail.getId());
+    censusActionProcessingService.cancelFieldWorkReminder(caseDetail.getId());
     verify(actionInstructionPublisher, times(1))
         .sendActionInstruction(
             eq(FIELD), any(uk.gov.ons.ctp.response.action.message.instruction.Action.class));

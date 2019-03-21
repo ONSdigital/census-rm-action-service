@@ -62,7 +62,7 @@ class ActionDistributor {
       ActionTypeRepository actionTypeRepo,
       CaseSvcClientService caseSvcClientService,
       @Qualifier("business") ActionProcessingService businessActionProcessingService,
-      @Qualifier("social") ActionProcessingService socialActionProcessingService,
+      @Qualifier("census") ActionProcessingService socialActionProcessingService,
       StateTransitionManager<ActionState, ActionDTO.ActionEvent> actionSvcStateTransitionManager) {
     this.appConfig = appConfig;
     this.redissonClient = redissonClient;
@@ -148,17 +148,9 @@ class ActionDistributor {
     SampleUnitDTO.SampleUnitType caseType =
         SampleUnitDTO.SampleUnitType.valueOf(actionCase.getSampleUnitType());
 
-    switch (caseType) {
-      case H:
-      case HI:
-        return socialActionProcessingService;
-
-      case B:
-      case BI:
-        return businessActionProcessingService;
-
-      default:
-        throw new UnsupportedOperationException("Sample Type: " + caseType + " is not supported!");
+    if (caseType == SampleUnitDTO.SampleUnitType.H) {
+      return socialActionProcessingService;
     }
+    throw new UnsupportedOperationException("Sample Type: " + caseType + " is not supported!");
   }
 }
