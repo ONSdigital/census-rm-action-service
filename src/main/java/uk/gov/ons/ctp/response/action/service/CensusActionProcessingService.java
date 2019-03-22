@@ -44,7 +44,7 @@ public class CensusActionProcessingService extends ActionProcessingService {
   @Qualifier("census")
   private ActionRequestContextFactory decoratorContextFactory;
 
-  private static final ActionRequestDecorator[] SOCIAL_DECORATORS = {
+  private static final ActionRequestDecorator[] CENSUS_DECORATORS = {
     new ActionAndActionPlan(),
     new CaseAndCaseEvent(),
     new CollectionExerciseAndSurvey(),
@@ -56,7 +56,7 @@ public class CensusActionProcessingService extends ActionProcessingService {
       ActionCaseRepository actionCaseRepo,
       ActionRepository actionRepository,
       ActionTypeRepository actionTypeRespository) {
-    super(SOCIAL_DECORATORS);
+    super(CENSUS_DECORATORS);
     this.actionRepository = actionRepository;
     this.actionTypeRepository = actionTypeRespository;
   }

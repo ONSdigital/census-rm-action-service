@@ -25,7 +25,6 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import uk.gov.ons.ctp.common.FixtureHelper;
 import uk.gov.ons.ctp.common.error.CTPException;
-import uk.gov.ons.ctp.common.state.StateTransitionManager;
 import uk.gov.ons.ctp.response.action.config.ActionDistribution;
 import uk.gov.ons.ctp.response.action.config.AppConfig;
 import uk.gov.ons.ctp.response.action.config.DataGrid;
@@ -35,8 +34,6 @@ import uk.gov.ons.ctp.response.action.domain.model.ActionType;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionTypeRepository;
-import uk.gov.ons.ctp.response.action.representation.ActionDTO.ActionEvent;
-import uk.gov.ons.ctp.response.action.representation.ActionDTO.ActionState;
 import uk.gov.ons.ctp.response.action.service.ActionProcessingService;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -45,8 +42,6 @@ public class ActionDistributorTest {
   private static final String ICL1E = "ICL1E";
 
   private List<ActionType> actionTypes;
-  private List<Action> actions;
-  private Stream<Action> censusActions;
   private ActionCase hActionCase;
   private RLock lock;
 
@@ -57,11 +52,6 @@ public class ActionDistributorTest {
   @Mock private ActionRepository actionRepo;
 
   @Mock private ActionTypeRepository actionTypeRepo;
-
-  @Mock private StateTransitionManager<ActionState, ActionEvent> actionSvcStateTransitionManager;
-
-  @Mock(name = "businessActionProcessingService")
-  private ActionProcessingService businessActionProcessingService;
 
   @Mock(name = "censusActionProcessingService")
   private ActionProcessingService censusActionProcessingService;
@@ -74,7 +64,7 @@ public class ActionDistributorTest {
   @Before
   public void setUp() throws Exception {
     actionTypes = FixtureHelper.loadClassFixtures(ActionType[].class);
-    censusActions = FixtureHelper.loadClassFixtures(Action[].class).stream();
+    Stream<Action> censusActions = FixtureHelper.loadClassFixtures(Action[].class).stream();
     hActionCase = new ActionCase();
     hActionCase.setSampleUnitType("H");
 
@@ -123,7 +113,7 @@ public class ActionDistributorTest {
   public void testProcessActionRequestsThrowsCTPException() throws Exception {
     // Given
     when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(0)));
-    doThrow(CTPException.class).when(businessActionProcessingService).processActionRequests(any());
+    doThrow(CTPException.class).when(censusActionProcessingService).processActionRequests(any());
 
     // When
     actionDistributor.distribute();
@@ -142,8 +132,8 @@ public class ActionDistributorTest {
     actionDistributor.distribute();
 
     // Then
-    verify(businessActionProcessingService, never()).processActionRequests(any());
-    verify(businessActionProcessingService, never()).processActionCancel(any());
+    verify(censusActionProcessingService, never()).processActionRequests(any());
+    verify(censusActionProcessingService, never()).processActionCancel(any());
 
     verify(lock, times(1)).unlock();
   }

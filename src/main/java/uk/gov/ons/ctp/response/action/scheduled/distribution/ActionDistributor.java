@@ -48,7 +48,6 @@ class ActionDistributor {
 
   private CaseSvcClientService caseSvcClientService;
 
-  private ActionProcessingService businessActionProcessingService;
   private ActionProcessingService socialActionProcessingService;
 
   private StateTransitionManager<ActionState, ActionDTO.ActionEvent>
@@ -61,7 +60,6 @@ class ActionDistributor {
       ActionCaseRepository actionCaseRepo,
       ActionTypeRepository actionTypeRepo,
       CaseSvcClientService caseSvcClientService,
-      @Qualifier("business") ActionProcessingService businessActionProcessingService,
       @Qualifier("census") ActionProcessingService socialActionProcessingService,
       StateTransitionManager<ActionState, ActionDTO.ActionEvent> actionSvcStateTransitionManager) {
     this.appConfig = appConfig;
@@ -70,7 +68,6 @@ class ActionDistributor {
     this.actionCaseRepo = actionCaseRepo;
     this.actionTypeRepo = actionTypeRepo;
     this.caseSvcClientService = caseSvcClientService;
-    this.businessActionProcessingService = businessActionProcessingService;
     this.socialActionProcessingService = socialActionProcessingService;
     this.actionSvcStateTransitionManager = actionSvcStateTransitionManager;
   }
