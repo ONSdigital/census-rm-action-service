@@ -164,7 +164,7 @@ public class PlanSchedulerIT {
     return response.getBody();
   }
 
-  private void createActionCase(
+  private CaseNotification createActionCase(
       final UUID collectionExerciseId,
       final ActionPlanDTO actionPlan,
       final UUID caseId,
@@ -192,6 +192,7 @@ public class PlanSchedulerIT {
             config.getHost(), config.getPort(), config.getUsername(), config.getPassword());
 
     sender.sendMessageToQueue("Case.LifecycleEvents", xml);
+    return caseNotification;
   }
 
   private String pollForPrinterAction() throws InterruptedException {
@@ -325,7 +326,6 @@ public class PlanSchedulerIT {
     //// Given
     final ActionPlanDTO actionPlan = createActionPlan();
 
-    final UUID partyId = UUID.fromString("cca5e7fc-9062-476d-94c5-5c46efd1ef54");
     final UUID surveyId = UUID.fromString("e0af7bd1-5ddf-4861-93a9-27d3eec31799");
 
     UUID collectionExcerciseId = UUID.fromString("7245ce02-139f-44d1-9d4e-f03ebdfcf0b1");
@@ -354,7 +354,6 @@ public class PlanSchedulerIT {
     ActionPlanDTO actionPlan = createActionPlan();
 
     UUID surveyId = UUID.fromString("2e679bf1-18c9-4945-86f0-126d6c9aae4d");
-    UUID sampleUnitId = UUID.fromString("905810f0-777f-48a1-ad79-3ef230551da1");
 
     UUID collectionExcerciseId = UUID.fromString("eea05d8a-f7ae-41de-ad9d-060acd024d38");
     OffsetDateTime startDate = OffsetDateTime.now().minusDays(3);
@@ -367,10 +366,11 @@ public class PlanSchedulerIT {
     UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
     String sampleUnitType = "H";
 
-    createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
+    CaseNotification caseNotification =
+        createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
     mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), caseId);
     mockSurveyDetails(surveyId);
-    mockGetSampleAttributes(sampleUnitId);
+    mockGetSampleAttributes(UUID.fromString(caseNotification.getSampleUnitId()));
     mockGetCaseEvent();
 
     //// When PlanScheduler and ActionDistributor runs
