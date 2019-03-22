@@ -19,6 +19,7 @@ public class SampleAttributes implements ActionRequestDecorator {
 
     actionAddress.setLine1(sampleAttribs.get("ADDRESS_LINE1"));
     actionAddress.setLine2(sampleAttribs.get("ADDRESS_LINE2"));
+    actionAddress.setLine3(sampleAttribs.get("ADDRESS_LINE3"));
     actionAddress.setLocality(sampleAttribs.get("LOCALITY"));
     actionAddress.setTownName(sampleAttribs.get("TOWN_NAME"));
     actionAddress.setPostcode(sampleAttribs.get("POSTCODE"));
