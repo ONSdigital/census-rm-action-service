@@ -1,7 +1,7 @@
 FROM openjdk:8-jre-slim
 
 VOLUME /tmp
-ARG JAR_FILE=actionsvc*.jar
+ARG JAR_FILE=census-rm-actionsvc*.jar
 RUN apt-get update
 RUN apt-get -yq clean
 
