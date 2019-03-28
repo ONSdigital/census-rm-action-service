@@ -55,5 +55,8 @@ public class ActionRule {
   @Column(name = "triggerdatetime")
   private OffsetDateTime triggerDateTime;
 
+  @Column(name = "hastriggered")
+  private Boolean hasTriggered;
+
   private Integer priority;
 }

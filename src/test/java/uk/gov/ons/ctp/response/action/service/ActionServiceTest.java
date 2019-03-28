@@ -26,11 +26,9 @@ import uk.gov.ons.ctp.response.action.client.PartySvcClientService;
 import uk.gov.ons.ctp.response.action.domain.model.Action;
 import uk.gov.ons.ctp.response.action.domain.model.ActionCase;
 import uk.gov.ons.ctp.response.action.domain.model.ActionPlan;
-import uk.gov.ons.ctp.response.action.domain.model.ActionPlanJob;
 import uk.gov.ons.ctp.response.action.domain.model.ActionRule;
 import uk.gov.ons.ctp.response.action.domain.model.ActionType;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
-import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanJobRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRuleRepository;
@@ -62,7 +60,6 @@ public class ActionServiceTest {
   @Mock private ActionRepository actionRepo;
   @Mock private ActionCaseRepository actionCaseRepo;
   @Mock private ActionPlanRepository actionPlanRepo;
-  @Mock private ActionPlanJobRepository actionPlanJobRepo;
   @Mock private ActionRuleRepository actionRuleRepo;
   @Mock private ActionTypeRepository actionTypeRepo;
   @Mock private ActionService actionServiceRepo;
@@ -76,7 +73,6 @@ public class ActionServiceTest {
   private List<ActionFeedback> actionFeedback;
   private List<ActionRule> actionRules;
   private List<ActionType> actionTypes;
-  private ActionPlanJob actionPlanJob;
   private List<CollectionExerciseDTO> collectionExercises;
   private List<PartyDTO> partys;
 
@@ -96,7 +92,6 @@ public class ActionServiceTest {
     actionRules = FixtureHelper.loadClassFixtures(ActionRule[].class);
     actionRules.forEach(actionRule -> actionRule.setTriggerDateTime(OffsetDateTime.now()));
     actionTypes = FixtureHelper.loadClassFixtures(ActionType[].class);
-    actionPlanJob = new ActionPlanJob();
 
     collectionExercises = FixtureHelper.loadClassFixtures(CollectionExerciseDTO[].class);
     partys = FixtureHelper.loadClassFixtures(PartyDTO[].class);
@@ -234,11 +229,10 @@ public class ActionServiceTest {
 
     // Given
     when(actionCaseRepo.findByActionPlanFK(any()))
-        .thenReturn(Collections.singletonList(actionCases.get(0)));
+        .thenReturn(Collections.singletonList(actionCases.get(0)).stream());
     when(actionRuleRepo.findByActionPlanFK(any()))
         .thenReturn(Collections.singletonList(actionRules.get(0)));
     when(actionTypeRepo.findByActionTypePK(any())).thenReturn(actionTypes.get(0));
-    when(actionPlanJobRepo.save(any(ActionPlanJob.class))).thenReturn(actionPlanJob);
     when(actionPlanRepo.findByActionPlanPK(any())).thenReturn(new ActionPlan());
 
     // When
@@ -247,7 +241,6 @@ public class ActionServiceTest {
     // Then
     verify(actionRepo, times(1)).save(any(Action.class));
     verify(actionPlanRepo, times(1)).saveAndFlush(any());
-    verify(actionPlanJobRepo, times(1)).saveAndFlush(any());
     verify(actionRepo, times(1)).flush();
   }
 

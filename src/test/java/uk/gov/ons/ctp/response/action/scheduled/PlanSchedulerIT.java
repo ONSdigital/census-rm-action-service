@@ -39,7 +39,6 @@ import uk.gov.ons.ctp.common.UnirestInitialiser;
 import uk.gov.ons.ctp.common.utility.Mapzer;
 import uk.gov.ons.ctp.response.action.config.AppConfig;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
-import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanJobRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRuleRepository;
@@ -70,6 +69,7 @@ import uk.gov.ons.tools.rabbit.SimpleMessageSender;
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class PlanSchedulerIT {
+
   private static final Logger log = LoggerFactory.getLogger(PlanSchedulerIT.class);
 
   @Autowired private ResourceLoader resourceLoader;
@@ -87,8 +87,6 @@ public class PlanSchedulerIT {
   @Autowired private ActionCaseRepository actionCaseRepository;
 
   @Autowired private ActionRepository actionRepository;
-
-  @Autowired private ActionPlanJobRepository actionPlanJobRepository;
 
   @Autowired private ActionPlanRepository actionPlanRepository;
 
@@ -113,7 +111,6 @@ public class PlanSchedulerIT {
     actionCaseRepository.deleteAllInBatch();
     actionRepository.deleteAllInBatch();
     actionRuleRepository.deleteAllInBatch();
-    actionPlanJobRepository.deleteAllInBatch();
     actionPlanRepository.deleteAllInBatch();
   }
 
@@ -321,34 +318,6 @@ public class PlanSchedulerIT {
   }
 
   @Test
-  public void testNoActionsCreatedWhenActionPlanHasEnded() throws Exception {
-    //// Given
-    final ActionPlanDTO actionPlan = createActionPlan();
-
-    final UUID partyId = UUID.fromString("cca5e7fc-9062-476d-94c5-5c46efd1ef54");
-    final UUID surveyId = UUID.fromString("e0af7bd1-5ddf-4861-93a9-27d3eec31799");
-
-    UUID collectionExcerciseId = UUID.fromString("7245ce02-139f-44d1-9d4e-f03ebdfcf0b1");
-    OffsetDateTime startDate = OffsetDateTime.now().minusDays(3);
-    OffsetDateTime endDate = OffsetDateTime.now().minusDays(1);
-    mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
-
-    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusDays(2);
-    createActionRule(actionPlan, triggerDateTime);
-
-    UUID caseId = UUID.fromString("61bcd60e-d91f-49db-a572-a2033b044baa");
-    String sampleUnitType = "B";
-
-    createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
-
-    //// When PlanScheduler and ActionDistributor runs
-
-    //// Then
-    String message = pollForPrinterAction();
-    assertThat(message, nullValue());
-  }
-
-  @Test
   public void testActiveActionPlanJobAndActionPlanCreatesAction() throws Exception {
     //// Given
     ActionPlanDTO actionPlan = createActionPlan();
@@ -361,7 +330,8 @@ public class PlanSchedulerIT {
     OffsetDateTime endDate = OffsetDateTime.now().plusDays(2);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
 
-    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusHours(12);
+    //    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusHours(12);
+    OffsetDateTime triggerDateTime = OffsetDateTime.now();
     ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
     UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
@@ -390,6 +360,65 @@ public class PlanSchedulerIT {
     assertThat(
         actionRule.getActionTypeName().toString(),
         is(actionInstruction.getActionRequest().getActionType()));
+
+    assertThat(pollForPrinterAction(), nullValue());
+  }
+
+  @Test
+  public void testInactiveActionPlanJobAndActionPlanDoesNotCreateAction() throws Exception {
+    //// Given
+    ActionPlanDTO actionPlan = createActionPlan();
+
+    UUID surveyId = UUID.fromString("2e679bf1-18c9-4945-86f0-126d6c9aae4d");
+    UUID partyId = UUID.fromString("905810f0-777f-48a1-ad79-3ef230551da1");
+
+    UUID collectionExcerciseId = UUID.fromString("eea05d8a-f7ae-41de-ad9d-060acd024d38");
+    OffsetDateTime startDate = OffsetDateTime.now().minusDays(3);
+    OffsetDateTime endDate = OffsetDateTime.now().plusDays(2);
+    mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
+
+    //    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusHours(12);
+    OffsetDateTime triggerDateTime = OffsetDateTime.now();
+    ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
+
+    UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
+    String sampleUnitType = "B";
+
+    createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
+    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), partyId, caseId);
+    mockSurveyDetails(surveyId);
+    mockGetPartyWithAssociationsFilteredBySurvey(sampleUnitType, partyId);
+    mockGetCaseEvent();
+
+    //// When PlanScheduler and ActionDistributor runs
+
+    //// Then
+    String message = pollForPrinterAction();
+    assertThat(message, notNullValue());
+
+    StringReader reader = new StringReader(message);
+    JAXBContext xmlToObject = JAXBContext.newInstance(ActionInstruction.class);
+    ActionInstruction actionInstruction =
+        (ActionInstruction) xmlToObject.createUnmarshaller().unmarshal(reader);
+
+    assertThat(caseId.toString(), is(actionInstruction.getActionRequest().getCaseId()));
+    assertThat(
+        actionPlan.getId().toString(), is(actionInstruction.getActionRequest().getActionPlan()));
+    assertThat(
+        actionRule.getActionTypeName().toString(),
+        is(actionInstruction.getActionRequest().getActionType()));
+
+    assertThat(pollForPrinterAction(), nullValue());
+
+    Thread.sleep(60000);
+    caseId = UUID.randomUUID();
+    sampleUnitType = "B";
+
+    createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
+    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), partyId, caseId);
+    mockSurveyDetails(surveyId);
+    mockGetPartyWithAssociationsFilteredBySurvey(sampleUnitType, partyId);
+    mockGetCaseEvent();
 
     assertThat(pollForPrinterAction(), nullValue());
   }
