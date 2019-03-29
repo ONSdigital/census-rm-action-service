@@ -44,8 +44,6 @@ public class ActionRuleEndpointIT {
 
   @Autowired private ActionRuleRepository actionRuleRepository;
 
-  @Autowired private ActionPlanJobRepository actionPlanJobRepository;
-
   @ClassRule public static final SpringClassRule SPRING_CLASS_RULE = new SpringClassRule();
 
   @Rule public final SpringMethodRule springMethodRule = new SpringMethodRule();
@@ -63,7 +61,6 @@ public class ActionRuleEndpointIT {
     UnirestInitialiser.initialise(mapper);
     actionCaseRepository.deleteAll();
     actionRepository.deleteAll();
-    actionPlanJobRepository.deleteAll();
     actionRuleRepository.deleteAll();
     actionPlanRepository.deleteAll();
   }
