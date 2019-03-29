@@ -27,7 +27,6 @@ public class ActionPlanProcessorTest {
   public void testHappyPath() {
     // Given
     ActionRule actionRule = new ActionRule();
-    actionRule.setActionPlanFK(666);
     List<ActionRule> actionRules = Collections.singletonList(actionRule);
     when(actionRuleRepo.findByTriggerDateTimeBeforeAndHasTriggeredIsFalse(any()))
         .thenReturn(actionRules);
@@ -36,7 +35,7 @@ public class ActionPlanProcessorTest {
     underTest.processActionPlans();
 
     // Then
-    verify(actionSvc).createScheduledActions(eq(666));
+    verify(actionSvc).createScheduledActions(eq(actionRule));
     verify(actionRuleRepo).saveAndFlush(eq(actionRule));
     assertTrue(actionRule.getHasTriggered());
   }

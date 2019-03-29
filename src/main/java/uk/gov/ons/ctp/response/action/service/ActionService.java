@@ -182,13 +182,20 @@ public class ActionService {
     return actionRepo.saveAndFlush(action);
   }
 
-  public void createScheduledActions(Integer actionPlanPk) {
+  public void createScheduledActions(ActionRule actionRule) {
+    Integer actionPlanPk = actionRule.getActionPlanFK();
+
     try (Stream<ActionCase> cases = actionCaseRepo.findByActionPlanFK(actionPlanPk)) {
-      List<ActionRule> rules = actionRuleRepo.findByActionPlanFK(actionPlanPk);
       List<ActionType> types = actionTypeRepo.findAll();
+      ActionType actionType =
+          types
+              .stream()
+              .filter(type -> actionRule.getActionTypeFK().equals(type.getActionTypePK()))
+              .findAny()
+              .orElse(null);
 
       // For each case/rule pair create an action
-      cases.forEach(caze -> createActionsForCase(caze, rules, types));
+      cases.forEach(caze -> createAction(caze, actionRule, actionType));
 
       // Now flush all the newly created actions to the DB
       actionRepo.flush();
@@ -197,24 +204,11 @@ public class ActionService {
     }
   }
 
-  private void createActionsForCase(
-      ActionCase actionCase, List<ActionRule> actionRules, List<ActionType> types) {
-    actionRules.forEach(rule -> createAction(actionCase, rule, types));
-  }
-
-  private void createAction(ActionCase actionCase, ActionRule actionRule, List<ActionType> types) {
+  private void createAction(ActionCase actionCase, ActionRule actionRule, ActionType actionType) {
 
     log.with("case_id", actionCase.getId().toString())
         .with("action_rule_id", actionRule.getId().toString())
         .info("Creating action");
-
-    // OK this is a teeny bit slow, but we're going to deprecate this code soon with a sproc
-    ActionType actionType =
-        types
-            .stream()
-            .filter(type -> actionRule.getActionTypeFK().equals(type.getActionTypePK()))
-            .findAny()
-            .orElse(null);
 
     Action newAction = new Action();
     newAction.setId(UUID.randomUUID());

@@ -236,7 +236,7 @@ public class ActionServiceTest {
     when(actionPlanRepo.findByActionPlanPK(any())).thenReturn(new ActionPlan());
 
     // When
-    actionService.createScheduledActions(1);
+    actionService.createScheduledActions(actionRules.get(0));
 
     // Then
     verify(actionRepo, times(1)).save(any(Action.class));
