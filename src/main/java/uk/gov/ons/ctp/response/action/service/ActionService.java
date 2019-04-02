@@ -25,7 +25,6 @@ import uk.gov.ons.ctp.response.action.domain.model.ActionType;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
-import uk.gov.ons.ctp.response.action.domain.repository.ActionRuleRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionTypeRepository;
 import uk.gov.ons.ctp.response.action.message.feedback.ActionFeedback;
 import uk.gov.ons.ctp.response.action.representation.ActionDTO;
@@ -46,7 +45,6 @@ public class ActionService {
   private ActionRepository actionRepo;
   private ActionCaseRepository actionCaseRepo;
   private ActionPlanRepository actionPlanRepository;
-  private ActionRuleRepository actionRuleRepo;
   private ActionTypeRepository actionTypeRepo;
   public static final String ACTION_NOT_FOUND = "Action not found for id %s";
 
@@ -57,13 +55,11 @@ public class ActionService {
       ActionRepository actionRepo,
       ActionCaseRepository actionCaseRepo,
       ActionPlanRepository actionPlanRepository,
-      ActionRuleRepository actionRuleRepo,
       ActionTypeRepository actionTypeRepo,
       StateTransitionManager<ActionState, ActionDTO.ActionEvent> actionSvcStateTransitionManager) {
     this.actionRepo = actionRepo;
     this.actionCaseRepo = actionCaseRepo;
     this.actionPlanRepository = actionPlanRepository;
-    this.actionRuleRepo = actionRuleRepo;
     this.actionTypeRepo = actionTypeRepo;
     this.actionSvcStateTransitionManager = actionSvcStateTransitionManager;
   }
