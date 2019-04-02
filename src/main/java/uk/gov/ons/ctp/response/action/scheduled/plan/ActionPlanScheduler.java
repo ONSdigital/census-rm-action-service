@@ -10,8 +10,8 @@ import org.springframework.stereotype.Service;
 public class ActionPlanScheduler {
   private static final String GLOBAL_ACTION_PLAN_LOCK = "GLOBALACTIONPLANLOCK";
 
-  private RedissonClient redissonClient;
-  private ActionPlanProcessor actionPlanProcessor;
+  private final RedissonClient redissonClient;
+  private final ActionPlanProcessor actionPlanProcessor;
 
   public ActionPlanScheduler(
       RedissonClient redissonClient, ActionPlanProcessor actionPlanProcessor) {

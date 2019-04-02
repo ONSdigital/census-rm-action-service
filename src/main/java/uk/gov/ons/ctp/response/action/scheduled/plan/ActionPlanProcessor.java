@@ -10,8 +10,8 @@ import uk.gov.ons.ctp.response.action.service.ActionService;
 
 @Component
 public class ActionPlanProcessor {
-  private ActionRuleRepository actionRuleRepo;
-  private ActionService actionSvc;
+  private final ActionRuleRepository actionRuleRepo;
+  private final ActionService actionSvc;
 
   public ActionPlanProcessor(ActionRuleRepository actionRuleRepo, ActionService actionSvc) {
     this.actionRuleRepo = actionRuleRepo;
