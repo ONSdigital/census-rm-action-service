@@ -53,11 +53,8 @@ public class ActionRequestValidator {
     if (isNotificationEmail(actionType)) {
       return true;
     }
-    if (isReminderEmail(actionType)
-        && (caseInProgress(actionRequest) || caseNotStarted(actionRequest))) {
-      return true;
-    }
-    return false;
+    return isReminderEmail(actionType)
+        && (caseInProgress(actionRequest) || caseNotStarted(actionRequest));
   }
 
   private boolean validateLetter(final ActionRequest actionRequest) {
@@ -66,12 +63,9 @@ public class ActionRequestValidator {
         && caseNotStarted(actionRequest)) {
       return true;
     }
-    if (enrolmentPending(actionRequest)
+    return enrolmentPending(actionRequest)
         && hasCreatedRespondent(actionRequest)
-        && caseNotStarted(actionRequest)) {
-      return true;
-    }
-    return false;
+        && caseNotStarted(actionRequest);
   }
 
   private boolean isLetter(final String handler) {
