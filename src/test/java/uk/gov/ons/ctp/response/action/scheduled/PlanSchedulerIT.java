@@ -199,7 +199,7 @@ public class PlanSchedulerIT {
             config.getHost(), config.getPort(), config.getUsername(), config.getPassword());
     BlockingQueue<String> queue =
         listener.listen(ExchangeType.Direct, "action-outbound-exchange", "Action.Printer.binding");
-    int timeout = 10;
+    int timeout = 15;
     return queue.poll(timeout, TimeUnit.SECONDS);
   }
 
@@ -340,7 +340,7 @@ public class PlanSchedulerIT {
     mockGetCaseEvent();
 
     //// When PlanScheduler and ActionDistributor runs
-    OffsetDateTime triggerDateTime = OffsetDateTime.now();
+    OffsetDateTime triggerDateTime = OffsetDateTime.now().plusSeconds(5);
     ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
     //// Then
@@ -391,7 +391,7 @@ public class PlanSchedulerIT {
     mockGetCaseEvent();
 
     //// When PlanScheduler and ActionDistributor runs
-    OffsetDateTime triggerDateTime = OffsetDateTime.now();
+    OffsetDateTime triggerDateTime = OffsetDateTime.now().plusSeconds(5);
     ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
     //// Then
