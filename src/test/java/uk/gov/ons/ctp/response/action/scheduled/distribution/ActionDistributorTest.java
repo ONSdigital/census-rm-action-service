@@ -25,7 +25,6 @@ import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import uk.gov.ons.ctp.common.FixtureHelper;
 import uk.gov.ons.ctp.common.error.CTPException;
-import uk.gov.ons.ctp.common.state.StateTransitionManager;
 import uk.gov.ons.ctp.response.action.config.ActionDistribution;
 import uk.gov.ons.ctp.response.action.config.AppConfig;
 import uk.gov.ons.ctp.response.action.config.DataGrid;
@@ -35,25 +34,15 @@ import uk.gov.ons.ctp.response.action.domain.model.ActionType;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionTypeRepository;
-import uk.gov.ons.ctp.response.action.representation.ActionDTO.ActionEvent;
-import uk.gov.ons.ctp.response.action.representation.ActionDTO.ActionState;
 import uk.gov.ons.ctp.response.action.service.ActionProcessingService;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ActionDistributorTest {
 
-  private static final String SOCIALNOT = "SOCIALNOT";
-  private static final String SOCIALSNE = "SOCIALSNE";
-  private static final String BSNOT = "BSNOT";
+  private static final String ICL1E = "ICL1E";
 
   private List<ActionType> actionTypes;
-  private List<Action> actions;
-  private Stream<Action> socialNotificationActions;
-  private Stream<Action> socialRemindersActions;
-  private Stream<Action> businessEnrolmentActions;
-  private ActionCase bActionCase;
   private ActionCase hActionCase;
-  private ActionCase fActionCase;
   private RLock lock;
 
   @Mock private AppConfig appConfig;
@@ -64,13 +53,8 @@ public class ActionDistributorTest {
 
   @Mock private ActionTypeRepository actionTypeRepo;
 
-  @Mock private StateTransitionManager<ActionState, ActionEvent> actionSvcStateTransitionManager;
-
-  @Mock(name = "businessActionProcessingService")
-  private ActionProcessingService businessActionProcessingService;
-
-  @Mock(name = "socialActionProcessingService")
-  private ActionProcessingService socialActionProcessingService;
+  @Mock(name = "censusActionProcessingService")
+  private ActionProcessingService censusActionProcessingService;
 
   @Mock private ActionCaseRepository actionCaseRepo;
 
@@ -80,16 +64,9 @@ public class ActionDistributorTest {
   @Before
   public void setUp() throws Exception {
     actionTypes = FixtureHelper.loadClassFixtures(ActionType[].class);
-    actions = FixtureHelper.loadClassFixtures(Action[].class);
-    socialNotificationActions = actions.subList(0, 2).stream();
-    socialRemindersActions = actions.subList(2, 4).stream();
-    businessEnrolmentActions = actions.subList(4, 6).stream();
-    bActionCase = new ActionCase();
-    bActionCase.setSampleUnitType("B");
+    Stream<Action> censusActions = FixtureHelper.loadClassFixtures(Action[].class).stream();
     hActionCase = new ActionCase();
     hActionCase.setSampleUnitType("H");
-    fActionCase = new ActionCase();
-    fActionCase.setSampleUnitType("F");
 
     MockitoAnnotations.initMocks(this);
     DataGrid dataGrid = new DataGrid();
@@ -102,63 +79,41 @@ public class ActionDistributorTest {
     lock = mock(RLock.class);
     when(redissonClient.getFairLock(any())).thenReturn(lock);
     when(lock.tryLock(anyInt(), eq(TimeUnit.SECONDS))).thenReturn(true);
-    when(actionCaseRepo.findById(any())).thenReturn(bActionCase);
+    when(actionCaseRepo.findById(any())).thenReturn(hActionCase);
 
-    // 3 action types (SOCIALNOT, SOCIALSNE, BSNOT)
+    // Test census action types (ICL1E)
     when(actionTypeRepo.findAll()).thenReturn(actionTypes);
 
     for (ActionType actionType : actionTypes) {
-      if (actionType.getName().equals(SOCIALNOT)) {
+      if (actionType.getName().equals(ICL1E)) {
         when(actionRepo.findByActionTypeAndStateIn(eq(actionType), any()))
-            .thenReturn(socialNotificationActions);
-      } else if (actionType.getName().equals(SOCIALSNE)) {
-        when(actionRepo.findByActionTypeAndStateIn(eq(actionType), any()))
-            .thenReturn(socialRemindersActions);
-      } else if (actionType.getName().equals(BSNOT)) {
-        when(actionRepo.findByActionTypeAndStateIn(eq(actionType), any()))
-            .thenReturn(businessEnrolmentActions);
+            .thenReturn(censusActions);
       }
     }
-  }
-
-  /** Happy Path with 1 ActionRequest and 1 ActionCancel for a B case */
-  @Test
-  public void testHappyPathBCase() throws Exception {
-    // Given setUp
-    when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(2)));
-
-    // When
-    actionDistributor.distribute();
-
-    // Then
-    verify(businessActionProcessingService, times(1)).processActionRequests(any());
-    verify(businessActionProcessingService, times(1)).processActionCancel(any());
-
-    verify(lock, times(1)).unlock();
   }
 
   /** Happy Path with 2 ActionRequests and 2 ActionCancels for a H case */
   @Test
   public void testHappyPathHCase() throws Exception {
     // Given
-    when(actionTypeRepo.findAll()).thenReturn(actionTypes.subList(0, 2));
+    when(actionTypeRepo.findAll()).thenReturn(actionTypes.subList(0, 1));
     when(actionCaseRepo.findById(any())).thenReturn(hActionCase);
 
     // When
     actionDistributor.distribute();
 
     // Then
-    verify(socialActionProcessingService, times(2)).processActionRequests(any());
-    verify(socialActionProcessingService, times(2)).processActionCancel(any());
+    verify(censusActionProcessingService, times(1)).processActionRequests(any());
+    verify(censusActionProcessingService, times(1)).processActionCancel(any());
 
-    verify(lock, times(2)).unlock();
+    verify(lock, times(1)).unlock();
   }
 
   @Test
   public void testProcessActionRequestsThrowsCTPException() throws Exception {
     // Given
-    when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(2)));
-    doThrow(CTPException.class).when(businessActionProcessingService).processActionRequests(any());
+    when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(0)));
+    doThrow(CTPException.class).when(censusActionProcessingService).processActionRequests(any());
 
     // When
     actionDistributor.distribute();
@@ -168,17 +123,17 @@ public class ActionDistributorTest {
   }
 
   @Test
-  public void testNoCaseWithSampleUnitTypeB() throws Exception {
+  public void testNoCaseWithSampleUnitTypeH() throws Exception {
     // Given setUp
-    when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(2)));
+    when(actionTypeRepo.findAll()).thenReturn(Collections.singletonList(actionTypes.get(0)));
     when(actionCaseRepo.findById(any())).thenReturn(null);
 
     // When
     actionDistributor.distribute();
 
     // Then
-    verify(businessActionProcessingService, never()).processActionRequests(any());
-    verify(businessActionProcessingService, never()).processActionCancel(any());
+    verify(censusActionProcessingService, never()).processActionRequests(any());
+    verify(censusActionProcessingService, never()).processActionCancel(any());
 
     verify(lock, times(1)).unlock();
   }

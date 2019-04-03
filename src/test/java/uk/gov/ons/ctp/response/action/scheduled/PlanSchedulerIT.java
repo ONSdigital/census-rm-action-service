@@ -1,10 +1,16 @@
 package uk.gov.ons.ctp.response.action.scheduled;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,13 +24,17 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import javax.transaction.Transactional;
 import javax.xml.bind.JAXBContext;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -56,8 +66,7 @@ import uk.gov.ons.ctp.response.casesvc.representation.CaseGroupDTO;
 import uk.gov.ons.ctp.response.casesvc.representation.CaseGroupStatus;
 import uk.gov.ons.ctp.response.casesvc.representation.CategoryDTO.CategoryName;
 import uk.gov.ons.ctp.response.collection.exercise.representation.CollectionExerciseDTO;
-import uk.gov.ons.ctp.response.party.representation.Attributes;
-import uk.gov.ons.ctp.response.party.representation.PartyDTO;
+import uk.gov.ons.ctp.response.sample.representation.SampleAttributesDTO;
 import uk.gov.ons.response.survey.representation.SurveyDTO;
 import uk.gov.ons.tools.rabbit.Rabbitmq;
 import uk.gov.ons.tools.rabbit.SimpleMessageBase.ExchangeType;
@@ -152,10 +161,9 @@ public class PlanSchedulerIT {
     return response.getBody();
   }
 
-  private void createActionCase(
+  private CaseNotification createActionCase(
       final UUID collectionExerciseId,
       final ActionPlanDTO actionPlan,
-      final UUID partyId,
       final UUID caseId,
       final String sampleUnitType)
       throws Exception {
@@ -168,7 +176,6 @@ public class PlanSchedulerIT {
     caseNotification.setExerciseId(collectionExerciseId.toString());
     caseNotification.setNotificationType(NotificationType.ACTIVATED);
     caseNotification.setSampleUnitType(sampleUnitType);
-    caseNotification.setPartyId(partyId.toString());
 
     JAXBContext jaxbContext = JAXBContext.newInstance(CaseNotification.class);
     String xml =
@@ -182,6 +189,7 @@ public class PlanSchedulerIT {
             config.getHost(), config.getPort(), config.getUsername(), config.getPassword());
 
     sender.sendMessageToQueue("Case.LifecycleEvents", xml);
+    return caseNotification;
   }
 
   private String pollForPrinterAction() throws InterruptedException {
@@ -196,21 +204,19 @@ public class PlanSchedulerIT {
     return queue.poll(timeout, TimeUnit.SECONDS);
   }
 
-  private void mockCaseDetailsMock(
-      UUID collectionExerciseId, UUID actionPlanId, UUID partyId, UUID caseId) throws IOException {
+  private void mockCaseDetailsMock(UUID collectionExerciseId, UUID actionPlanId, UUID caseId)
+      throws IOException {
 
     CaseGroupDTO caseGroupDTO = new CaseGroupDTO();
     caseGroupDTO.setCaseGroupStatus(CaseGroupStatus.INPROGRESS);
     caseGroupDTO.setCollectionExerciseId(collectionExerciseId);
-    caseGroupDTO.setPartyId(partyId);
 
     CaseDetailsDTO caseDetailsDTO = new CaseDetailsDTO();
     caseDetailsDTO.setId(caseId);
     caseDetailsDTO.setCaseEvents(new ArrayList<>());
     caseDetailsDTO.setCaseGroup(caseGroupDTO);
-    caseDetailsDTO.setSampleUnitType("B");
+    caseDetailsDTO.setSampleUnitType("H");
     caseDetailsDTO.setActionPlanId(actionPlanId);
-    caseDetailsDTO.setPartyId(partyId);
 
     wireMockRule.stubFor(
         get(urlPathMatching(String.format("/cases/%s", caseDetailsDTO.getId())))
@@ -241,21 +247,17 @@ public class PlanSchedulerIT {
                     .withBody(objectMapper.writeValueAsString(collectionExerciseDTO))));
   }
 
-  private void mockGetPartyWithAssociationsFilteredBySurvey(String sampleUnitType, UUID partyId)
-      throws JsonProcessingException {
-    PartyDTO partyDTO = new PartyDTO();
-    partyDTO.setId(partyId.toString());
-    partyDTO.setAssociations(new ArrayList<>());
-    partyDTO.setAttributes(new Attributes());
+  private void mockGetSampleAttributes(UUID sampleUnitId) throws JsonProcessingException {
+    SampleAttributesDTO sampleAttributesDTO = new SampleAttributesDTO();
+    sampleAttributesDTO.setId(sampleUnitId);
+    sampleAttributesDTO.setAttributes(Collections.emptyMap());
 
     wireMockRule.stubFor(
-        get(urlPathEqualTo(
-                String.format(
-                    "/party-api/v1/parties/type/%s/id/%s", sampleUnitType, partyId.toString())))
+        get(urlPathEqualTo(String.format("/samples/%s/attributes", sampleUnitId)))
             .willReturn(
                 aResponse()
                     .withHeader("Content-Type", "application/json")
-                    .withBody(objectMapper.writeValueAsString(partyDTO))));
+                    .withBody(objectMapper.writeValueAsString(sampleAttributesDTO))));
   }
 
   private void mockSurveyDetails(UUID surveyId) throws IOException {
@@ -294,7 +296,6 @@ public class PlanSchedulerIT {
     ActionPlanDTO actionPlan = createActionPlan();
 
     final UUID surveyId = UUID.fromString("2ae42f73-3324-4d6b-b071-d9ae0e1fbe22");
-    final UUID partyId = UUID.fromString("2050428f-1cea-4e71-8b0c-f00d0d354a0f");
 
     UUID collectionExerciseId = UUID.fromString("09a47930-c3f1-470d-a4a3-f2f5454d8e99");
     OffsetDateTime startDate = OffsetDateTime.now().plusDays(1);
@@ -305,10 +306,10 @@ public class PlanSchedulerIT {
     createActionRule(actionPlan, triggerDateTime);
 
     UUID caseId = UUID.fromString("7d84ffcd-4a5d-4427-a712-581437ebd6c2");
-    String sampleUnitType = "B";
+    String sampleUnitType = "H";
 
-    mockCaseDetailsMock(collectionExerciseId, actionPlan.getId(), partyId, caseId);
-    createActionCase(collectionExerciseId, actionPlan, partyId, caseId, sampleUnitType);
+    mockCaseDetailsMock(collectionExerciseId, actionPlan.getId(), caseId);
+    createActionCase(collectionExerciseId, actionPlan, caseId, sampleUnitType);
 
     //// When PlanScheduler and ActionDistributor runs
 
@@ -322,7 +323,7 @@ public class PlanSchedulerIT {
     //// Given
     ActionPlanDTO actionPlan = createActionPlan();
 
-    UUID surveyId = UUID.fromString("2e679bf1-18c9-4945-86f0-126d6c9aae4d");
+    final UUID surveyId = UUID.fromString("e0af7bd1-5ddf-4861-93a9-27d3eec31799");
     UUID partyId = UUID.fromString("905810f0-777f-48a1-ad79-3ef230551da1");
 
     UUID collectionExcerciseId = UUID.fromString("eea05d8a-f7ae-41de-ad9d-060acd024d38");
@@ -334,8 +335,8 @@ public class PlanSchedulerIT {
     OffsetDateTime triggerDateTime = OffsetDateTime.now();
     ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
-    UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
-    String sampleUnitType = "B";
+    UUID caseId = UUID.fromString("61bcd60e-d91f-49db-a572-a2033b044baa");
+    String sampleUnitType = "H";
 
     createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
     mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), partyId, caseId);
@@ -370,7 +371,6 @@ public class PlanSchedulerIT {
     ActionPlanDTO actionPlan = createActionPlan();
 
     UUID surveyId = UUID.fromString("2e679bf1-18c9-4945-86f0-126d6c9aae4d");
-    UUID partyId = UUID.fromString("905810f0-777f-48a1-ad79-3ef230551da1");
 
     UUID collectionExcerciseId = UUID.fromString("eea05d8a-f7ae-41de-ad9d-060acd024d38");
     OffsetDateTime startDate = OffsetDateTime.now().minusDays(3);
@@ -382,12 +382,13 @@ public class PlanSchedulerIT {
     ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
     UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
-    String sampleUnitType = "B";
+    String sampleUnitType = "H";
 
-    createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
-    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), partyId, caseId);
+    CaseNotification caseNotification =
+        createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
+    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), caseId);
     mockSurveyDetails(surveyId);
-    mockGetPartyWithAssociationsFilteredBySurvey(sampleUnitType, partyId);
+    mockGetSampleAttributes(UUID.fromString(caseNotification.getSampleUnitId()));
     mockGetCaseEvent();
 
     //// When PlanScheduler and ActionDistributor runs

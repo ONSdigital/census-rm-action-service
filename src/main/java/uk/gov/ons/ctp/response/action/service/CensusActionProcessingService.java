@@ -25,10 +25,10 @@ import uk.gov.ons.ctp.response.action.service.decorator.context.ActionRequestCon
 import uk.gov.ons.ctp.response.casesvc.representation.CaseDetailsDTO;
 
 @Service
-@Qualifier("social")
-public class SocialActionProcessingService extends ActionProcessingService {
+@Qualifier("census")
+public class CensusActionProcessingService extends ActionProcessingService {
 
-  private static final Logger log = LoggerFactory.getLogger(SocialActionProcessingService.class);
+  private static final Logger log = LoggerFactory.getLogger(CensusActionProcessingService.class);
 
   public static final String CANCELLATION_REASON = "Case closed";
   public static final String SOCIAL_ICF = "SOCIALICF";
@@ -41,10 +41,10 @@ public class SocialActionProcessingService extends ActionProcessingService {
   @Autowired private CaseSvcClientService caseSvcClientService;
 
   @Autowired
-  @Qualifier("social")
+  @Qualifier("census")
   private ActionRequestContextFactory decoratorContextFactory;
 
-  private static final ActionRequestDecorator[] SOCIAL_DECORATORS = {
+  private static final ActionRequestDecorator[] CENSUS_DECORATORS = {
     new ActionAndActionPlan(),
     new CaseAndCaseEvent(),
     new CollectionExerciseAndSurvey(),
@@ -52,11 +52,11 @@ public class SocialActionProcessingService extends ActionProcessingService {
     new SampleUnitRef()
   };
 
-  public SocialActionProcessingService(
+  public CensusActionProcessingService(
       ActionCaseRepository actionCaseRepo,
       ActionRepository actionRepository,
       ActionTypeRepository actionTypeRespository) {
-    super(SOCIAL_DECORATORS);
+    super(CENSUS_DECORATORS);
     this.actionRepository = actionRepository;
     this.actionTypeRepository = actionTypeRespository;
   }
