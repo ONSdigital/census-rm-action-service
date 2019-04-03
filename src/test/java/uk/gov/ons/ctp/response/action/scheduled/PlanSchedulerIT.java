@@ -78,7 +78,6 @@ import uk.gov.ons.tools.rabbit.SimpleMessageSender;
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class PlanSchedulerIT {
-
   private static final Logger log = LoggerFactory.getLogger(PlanSchedulerIT.class);
 
   @Autowired private ResourceLoader resourceLoader;
@@ -302,7 +301,7 @@ public class PlanSchedulerIT {
     OffsetDateTime endDate = OffsetDateTime.now().plusDays(3);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExerciseId);
 
-    OffsetDateTime triggerDateTime = OffsetDateTime.now().plusDays(2);
+    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusDays(2);
     createActionRule(actionPlan, triggerDateTime);
 
     UUID caseId = UUID.fromString("7d84ffcd-4a5d-4427-a712-581437ebd6c2");
@@ -319,54 +318,34 @@ public class PlanSchedulerIT {
   }
 
   @Test
-  public void testActiveActionPlanJobAndActionPlanCreatesAction() throws Exception {
+  public void testNoActionsCreatedWhenActionPlanHasEnded() throws Exception {
     //// Given
-    ActionPlanDTO actionPlan = createActionPlan();
+    final ActionPlanDTO actionPlan = createActionPlan();
 
     final UUID surveyId = UUID.fromString("e0af7bd1-5ddf-4861-93a9-27d3eec31799");
-    UUID partyId = UUID.fromString("905810f0-777f-48a1-ad79-3ef230551da1");
 
-    UUID collectionExcerciseId = UUID.fromString("eea05d8a-f7ae-41de-ad9d-060acd024d38");
+    UUID collectionExcerciseId = UUID.fromString("7245ce02-139f-44d1-9d4e-f03ebdfcf0b1");
     OffsetDateTime startDate = OffsetDateTime.now().minusDays(3);
-    OffsetDateTime endDate = OffsetDateTime.now().plusDays(2);
+    OffsetDateTime endDate = OffsetDateTime.now().minusDays(1);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
 
-    //    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusHours(12);
-    OffsetDateTime triggerDateTime = OffsetDateTime.now();
-    ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
+    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusDays(2);
+    createActionRule(actionPlan, triggerDateTime);
 
     UUID caseId = UUID.fromString("61bcd60e-d91f-49db-a572-a2033b044baa");
     String sampleUnitType = "H";
 
-    createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
-    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), partyId, caseId);
-    mockSurveyDetails(surveyId);
-    mockGetPartyWithAssociationsFilteredBySurvey(sampleUnitType, partyId);
-    mockGetCaseEvent();
+    createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
 
     //// When PlanScheduler and ActionDistributor runs
 
     //// Then
     String message = pollForPrinterAction();
-    assertThat(message, notNullValue());
-
-    StringReader reader = new StringReader(message);
-    JAXBContext xmlToObject = JAXBContext.newInstance(ActionInstruction.class);
-    ActionInstruction actionInstruction =
-        (ActionInstruction) xmlToObject.createUnmarshaller().unmarshal(reader);
-
-    assertThat(caseId.toString(), is(actionInstruction.getActionRequest().getCaseId()));
-    assertThat(
-        actionPlan.getId().toString(), is(actionInstruction.getActionRequest().getActionPlan()));
-    assertThat(
-        actionRule.getActionTypeName().toString(),
-        is(actionInstruction.getActionRequest().getActionType()));
-
-    assertThat(pollForPrinterAction(), nullValue());
+    assertThat(message, nullValue());
   }
 
   @Test
-  public void testInactiveActionPlanJobAndActionPlanDoesNotCreateAction() throws Exception {
+  public void testActiveActionPlanJobAndActionPlanCreatesAction() throws Exception {
     //// Given
     ActionPlanDTO actionPlan = createActionPlan();
 
@@ -377,7 +356,6 @@ public class PlanSchedulerIT {
     OffsetDateTime endDate = OffsetDateTime.now().plusDays(2);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
 
-    //    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusHours(12);
     OffsetDateTime triggerDateTime = OffsetDateTime.now();
     ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
@@ -408,18 +386,6 @@ public class PlanSchedulerIT {
     assertThat(
         actionRule.getActionTypeName().toString(),
         is(actionInstruction.getActionRequest().getActionType()));
-
-    assertThat(pollForPrinterAction(), nullValue());
-
-    Thread.sleep(60000);
-    caseId = UUID.randomUUID();
-    sampleUnitType = "B";
-
-    createActionCase(collectionExcerciseId, actionPlan, partyId, caseId, sampleUnitType);
-    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), partyId, caseId);
-    mockSurveyDetails(surveyId);
-    mockGetPartyWithAssociationsFilteredBySurvey(sampleUnitType, partyId);
-    mockGetCaseEvent();
 
     assertThat(pollForPrinterAction(), nullValue());
   }
