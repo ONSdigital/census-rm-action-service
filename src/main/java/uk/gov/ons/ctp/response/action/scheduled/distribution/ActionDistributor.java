@@ -48,8 +48,7 @@ class ActionDistributor {
 
   private CaseSvcClientService caseSvcClientService;
 
-  private ActionProcessingService businessActionProcessingService;
-  private ActionProcessingService socialActionProcessingService;
+  private ActionProcessingService censusActionProcessingService;
 
   private StateTransitionManager<ActionState, ActionDTO.ActionEvent>
       actionSvcStateTransitionManager;
@@ -61,8 +60,7 @@ class ActionDistributor {
       ActionCaseRepository actionCaseRepo,
       ActionTypeRepository actionTypeRepo,
       CaseSvcClientService caseSvcClientService,
-      @Qualifier("business") ActionProcessingService businessActionProcessingService,
-      @Qualifier("social") ActionProcessingService socialActionProcessingService,
+      @Qualifier("census") ActionProcessingService censusActionProcessingService,
       StateTransitionManager<ActionState, ActionDTO.ActionEvent> actionSvcStateTransitionManager) {
     this.appConfig = appConfig;
     this.redissonClient = redissonClient;
@@ -70,8 +68,7 @@ class ActionDistributor {
     this.actionCaseRepo = actionCaseRepo;
     this.actionTypeRepo = actionTypeRepo;
     this.caseSvcClientService = caseSvcClientService;
-    this.businessActionProcessingService = businessActionProcessingService;
-    this.socialActionProcessingService = socialActionProcessingService;
+    this.censusActionProcessingService = censusActionProcessingService;
     this.actionSvcStateTransitionManager = actionSvcStateTransitionManager;
   }
 
@@ -148,17 +145,9 @@ class ActionDistributor {
     SampleUnitDTO.SampleUnitType caseType =
         SampleUnitDTO.SampleUnitType.valueOf(actionCase.getSampleUnitType());
 
-    switch (caseType) {
-      case H:
-      case HI:
-        return socialActionProcessingService;
-
-      case B:
-      case BI:
-        return businessActionProcessingService;
-
-      default:
-        throw new UnsupportedOperationException("Sample Type: " + caseType + " is not supported!");
+    if (caseType == SampleUnitDTO.SampleUnitType.H) {
+      return censusActionProcessingService;
     }
+    throw new UnsupportedOperationException("Sample Type: " + caseType + " is not supported!");
   }
 }

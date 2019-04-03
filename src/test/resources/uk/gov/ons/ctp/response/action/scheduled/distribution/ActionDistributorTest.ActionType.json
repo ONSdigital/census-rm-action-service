@@ -1,26 +1,10 @@
 [
   {
     "actionTypePK": 1,
-    "name": "SOCIALNOT",
-    "description": "Enrolment Invitation Letter",
+    "name": "ICL1E",
+    "description": "Initial Contact Letter 1 (England)",
     "handler": "Printer",
     "canCancel": false,
-    "responseRequired": false
-  },
-  {
-    "actionTypePK": 2,
-    "name": "SOCIALSNE",
-    "description": "Survey Reminder Notification",
-    "handler": "Notify",
-    "canCancel": true,
-    "responseRequired": false
-  },
-  {
-    "actionTypePK": 3,
-    "name": "BSNOT",
-    "description": "Enrolment Invitation Letter",
-    "handler": "Printer",
-    "canCancel": true,
     "responseRequired": false
   }
 ]

@@ -1,0 +1,11 @@
+databaseChangeLog:
+
+  - changeSet:
+      id: 1-0
+      author: Adam Hawtin
+      changes:
+        - sqlFile:
+            comment: Add an action type for census initial contact letters for england (ICL1)
+            path: add_action_type_census_initial_contact_letter_england.sql
+            relativeToChangelogFile: true
+            splitStatements: false
