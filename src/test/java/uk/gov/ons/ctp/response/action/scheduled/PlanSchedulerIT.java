@@ -301,7 +301,7 @@ public class PlanSchedulerIT {
     OffsetDateTime endDate = OffsetDateTime.now().plusDays(3);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExerciseId);
 
-    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusDays(2);
+    OffsetDateTime triggerDateTime = OffsetDateTime.now().plusDays(2);
     createActionRule(actionPlan, triggerDateTime);
 
     UUID caseId = UUID.fromString("7d84ffcd-4a5d-4427-a712-581437ebd6c2");
@@ -320,28 +320,52 @@ public class PlanSchedulerIT {
   @Test
   public void testNoActionsCreatedWhenActionPlanHasEnded() throws Exception {
     //// Given
-    final ActionPlanDTO actionPlan = createActionPlan();
+    ActionPlanDTO actionPlan = createActionPlan();
 
-    final UUID surveyId = UUID.fromString("e0af7bd1-5ddf-4861-93a9-27d3eec31799");
+    UUID surveyId = UUID.fromString("2e679bf1-18c9-4945-86f0-126d6c9aae4d");
 
-    UUID collectionExcerciseId = UUID.fromString("7245ce02-139f-44d1-9d4e-f03ebdfcf0b1");
+    UUID collectionExcerciseId = UUID.fromString("eea05d8a-f7ae-41de-ad9d-060acd024d38");
     OffsetDateTime startDate = OffsetDateTime.now().minusDays(3);
-    OffsetDateTime endDate = OffsetDateTime.now().minusDays(1);
+    OffsetDateTime endDate = OffsetDateTime.now().plusDays(2);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
 
-    OffsetDateTime triggerDateTime = OffsetDateTime.now().minusDays(2);
-    createActionRule(actionPlan, triggerDateTime);
-
-    UUID caseId = UUID.fromString("61bcd60e-d91f-49db-a572-a2033b044baa");
+    UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
     String sampleUnitType = "H";
 
-    createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
+    CaseNotification caseNotification =
+        createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
+    mockCaseDetailsMock(collectionExcerciseId, actionPlan.getId(), caseId);
+    mockSurveyDetails(surveyId);
+    mockGetSampleAttributes(UUID.fromString(caseNotification.getSampleUnitId()));
+    mockGetCaseEvent();
 
     //// When PlanScheduler and ActionDistributor runs
+    OffsetDateTime triggerDateTime = OffsetDateTime.now();
+    ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
     //// Then
     String message = pollForPrinterAction();
-    assertThat(message, nullValue());
+    assertThat(message, notNullValue());
+
+    StringReader reader = new StringReader(message);
+    JAXBContext xmlToObject = JAXBContext.newInstance(ActionInstruction.class);
+    ActionInstruction actionInstruction =
+        (ActionInstruction) xmlToObject.createUnmarshaller().unmarshal(reader);
+
+    assertThat(caseId.toString(), is(actionInstruction.getActionRequest().getCaseId()));
+    assertThat(
+        actionPlan.getId().toString(), is(actionInstruction.getActionRequest().getActionPlan()));
+    assertThat(
+        actionRule.getActionTypeName().toString(),
+        is(actionInstruction.getActionRequest().getActionType()));
+
+    // Now chuck another case onto the action plan...
+    Thread.sleep(30000);
+    caseId = UUID.randomUUID();
+    createActionCase(collectionExcerciseId, actionPlan, caseId, sampleUnitType);
+
+    // And nothing should appear on the queue because the action rule has triggered
+    assertThat(pollForPrinterAction(), nullValue());
   }
 
   @Test
@@ -356,9 +380,6 @@ public class PlanSchedulerIT {
     OffsetDateTime endDate = OffsetDateTime.now().plusDays(2);
     mockGetCollectionExercise(startDate, endDate, surveyId, collectionExcerciseId);
 
-    OffsetDateTime triggerDateTime = OffsetDateTime.now();
-    ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
-
     UUID caseId = UUID.fromString("b12aa9e7-4e6d-44aa-b7b5-4b507bbcf6c5");
     String sampleUnitType = "H";
 
@@ -370,6 +391,8 @@ public class PlanSchedulerIT {
     mockGetCaseEvent();
 
     //// When PlanScheduler and ActionDistributor runs
+    OffsetDateTime triggerDateTime = OffsetDateTime.now();
+    ActionRuleDTO actionRule = createActionRule(actionPlan, triggerDateTime);
 
     //// Then
     String message = pollForPrinterAction();
