@@ -5,12 +5,10 @@ import static uk.gov.ons.ctp.common.time.DateTimeUtil.nowUTC;
 import com.godaddy.logging.Logger;
 import com.godaddy.logging.LoggerFactory;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import net.sourceforge.cobertura.CoverageIgnore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,20 +20,16 @@ import uk.gov.ons.ctp.common.time.DateTimeUtil;
 import uk.gov.ons.ctp.response.action.domain.model.Action;
 import uk.gov.ons.ctp.response.action.domain.model.ActionCase;
 import uk.gov.ons.ctp.response.action.domain.model.ActionPlan;
-import uk.gov.ons.ctp.response.action.domain.model.ActionPlanJob;
 import uk.gov.ons.ctp.response.action.domain.model.ActionRule;
 import uk.gov.ons.ctp.response.action.domain.model.ActionType;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
-import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanJobRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
-import uk.gov.ons.ctp.response.action.domain.repository.ActionRuleRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionTypeRepository;
 import uk.gov.ons.ctp.response.action.message.feedback.ActionFeedback;
 import uk.gov.ons.ctp.response.action.representation.ActionDTO;
 import uk.gov.ons.ctp.response.action.representation.ActionDTO.ActionEvent;
 import uk.gov.ons.ctp.response.action.representation.ActionDTO.ActionState;
-import uk.gov.ons.ctp.response.action.representation.ActionPlanJobDTO;
 
 /**
  * An ActionService implementation which encapsulates all business logic operating on the Action
@@ -51,8 +45,6 @@ public class ActionService {
   private ActionRepository actionRepo;
   private ActionCaseRepository actionCaseRepo;
   private ActionPlanRepository actionPlanRepository;
-  private ActionPlanJobRepository actionPlanJobRepository;
-  private ActionRuleRepository actionRuleRepo;
   private ActionTypeRepository actionTypeRepo;
   public static final String ACTION_NOT_FOUND = "Action not found for id %s";
 
@@ -63,15 +55,11 @@ public class ActionService {
       ActionRepository actionRepo,
       ActionCaseRepository actionCaseRepo,
       ActionPlanRepository actionPlanRepository,
-      ActionPlanJobRepository actionPlanJobRepository,
-      ActionRuleRepository actionRuleRepo,
       ActionTypeRepository actionTypeRepo,
       StateTransitionManager<ActionState, ActionDTO.ActionEvent> actionSvcStateTransitionManager) {
     this.actionRepo = actionRepo;
     this.actionCaseRepo = actionCaseRepo;
     this.actionPlanRepository = actionPlanRepository;
-    this.actionPlanJobRepository = actionPlanJobRepository;
-    this.actionRuleRepo = actionRuleRepo;
     this.actionTypeRepo = actionTypeRepo;
     this.actionSvcStateTransitionManager = actionSvcStateTransitionManager;
   }
@@ -190,75 +178,33 @@ public class ActionService {
     return actionRepo.saveAndFlush(action);
   }
 
-  @Transactional(propagation = Propagation.REQUIRES_NEW)
-  public void createScheduledActions(Integer actionPlanPk) {
-    // Action plan job has to be created before actions
-    ActionPlanJob actionPlanJob = createActionPlanJob(actionPlanPk);
+  public void createScheduledActions(ActionRule actionRule) {
+    Integer actionPlanPk = actionRule.getActionPlanFK();
 
-    List<ActionCase> cases = actionCaseRepo.findByActionPlanFK(actionPlanPk);
-    List<ActionRule> rules = actionRuleRepo.findByActionPlanFK(actionPlanPk);
-    List<ActionType> types = actionTypeRepo.findAll();
+    try (Stream<ActionCase> cases = actionCaseRepo.findByActionPlanFK(actionPlanPk)) {
+      List<ActionType> types = actionTypeRepo.findAll();
+      ActionType actionType =
+          types
+              .stream()
+              .filter(type -> actionRule.getActionTypeFK().equals(type.getActionTypePK()))
+              .findAny()
+              .orElse(null);
 
-    // For each case/rule pair create an action
-    cases.forEach(caze -> createActionsForCase(caze, rules, types));
+      // For each case/rule pair create an action
+      cases.forEach(caze -> createAction(caze, actionRule, actionType));
 
-    // Now flush all the newly created actions to the DB
-    actionRepo.flush();
+      // Now flush all the newly created actions to the DB
+      actionRepo.flush();
 
-    updatePlanAndJob(actionPlanJob);
-  }
-
-  private void createActionsForCase(
-      ActionCase actionCase, List<ActionRule> actionRules, List<ActionType> types) {
-    if (isActionPlanLive(actionCase)) {
-      actionRules.forEach(rule -> createActionForCaseAndRule(actionCase, rule, types));
+      updatePlan(actionPlanPk);
     }
   }
 
-  private boolean isActionPlanLive(ActionCase actionCase) {
-    final Timestamp currentTime = nowUTC();
-    return actionCase.getActionPlanStartDate().before(currentTime)
-        && actionCase.getActionPlanEndDate().after(currentTime);
-  }
-
-  private void createActionForCaseAndRule(
-      ActionCase actionCase, ActionRule actionRule, List<ActionType> types) {
-    if (hasRuleTriggered(actionRule)) {
-      createAction(actionCase, actionRule, types);
-    }
-  }
-
-  private boolean hasRuleTriggered(ActionRule rule) {
-    final Timestamp currentTime = nowUTC();
-    final Timestamp dayBefore =
-        Timestamp.valueOf(
-            LocalDateTime.ofInstant(
-                currentTime.toInstant().minus(1, ChronoUnit.DAYS), ZoneOffset.UTC));
-    final Timestamp triggerDateTime =
-        Timestamp.valueOf(
-            LocalDateTime.ofInstant(rule.getTriggerDateTime().toInstant(), ZoneOffset.UTC));
-    return triggerDateTime.before(currentTime) && triggerDateTime.after(dayBefore);
-  }
-
-  private void createAction(ActionCase actionCase, ActionRule actionRule, List<ActionType> types) {
-
-    // Only create action if it doesn't already exist
-    if (actionRepo.existsByCaseIdAndActionRuleFK(
-        actionCase.getId(), actionRule.getActionRulePK())) {
-      return;
-    }
+  private void createAction(ActionCase actionCase, ActionRule actionRule, ActionType actionType) {
 
     log.with("case_id", actionCase.getId().toString())
         .with("action_rule_id", actionRule.getId().toString())
         .info("Creating action");
-
-    // OK this is a teeny bit slow, but we're going to deprecate this code soon with a sproc
-    ActionType actionType =
-        types
-            .stream()
-            .filter(type -> actionRule.getActionTypeFK().equals(type.getActionTypePK()))
-            .findAny()
-            .orElse(null);
 
     Action newAction = new Action();
     newAction.setId(UUID.randomUUID());
@@ -277,14 +223,11 @@ public class ActionService {
     actionRepo.save(newAction);
   }
 
-  private void updatePlanAndJob(ActionPlanJob actionPlanJob) {
-    ActionPlan actionPlan =
-        actionPlanRepository.findByActionPlanPK(actionPlanJob.getActionPlanFK());
+  private void updatePlan(Integer actionPlanPk) {
+    ActionPlan actionPlan = actionPlanRepository.findByActionPlanPK(actionPlanPk);
 
     final Timestamp currentTime = nowUTC();
-    actionPlanJob.complete(currentTime);
     actionPlan.setLastRunDateTime(currentTime);
-    actionPlanJobRepository.saveAndFlush(actionPlanJob);
     actionPlanRepository.saveAndFlush(actionPlan);
   }
 
@@ -340,19 +283,5 @@ public class ActionService {
       actionToReRun.setState(nextState);
       actionRepo.saveAndFlush(actionToReRun);
     }
-  }
-
-  private ActionPlanJob createActionPlanJob(Integer actionPlanPk) {
-    ActionPlanJob actionPlanJob = new ActionPlanJob();
-    actionPlanJob.setActionPlanFK(actionPlanPk);
-    actionPlanJob.setCreatedBy(SYSTEM);
-    actionPlanJob.setState(ActionPlanJobDTO.ActionPlanJobState.SUBMITTED);
-    final Timestamp now = nowUTC();
-    actionPlanJob.setCreatedDateTime(now);
-    actionPlanJob.setUpdatedDateTime(now);
-    actionPlanJob.setId(UUID.randomUUID());
-    ActionPlanJob createdJob = actionPlanJobRepository.save(actionPlanJob);
-    log.with("action_plan_job", createdJob).debug("Created action plan job");
-    return createdJob;
   }
 }

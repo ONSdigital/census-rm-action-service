@@ -1,0 +1,11 @@
+databaseChangeLog:
+
+- changeSet:
+    id: 16-0
+    author: Nick Grant
+    changes:
+    - sqlFile:
+        comment: Add a hasTriggered column to ActionRule
+        path: create-hastriggered-actionrule-column.sql
+        relativeToChangelogFile: true
+        splitStatements: false

@@ -35,6 +35,7 @@ public class ActionRuleService {
     actionRule.setActionRulePK(null);
 
     actionRule.setId(UUID.randomUUID());
+    actionRule.setHasTriggered(false);
     return actionRuleRepo.saveAndFlush(actionRule);
   }
 
