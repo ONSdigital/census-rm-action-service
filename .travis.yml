@@ -18,17 +18,22 @@ script:
   - mvn fmt:check verify cobertura:cobertura-integration-test
 
 after_success:
-- if ([ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]) || [ "$TRAVIS_BRANCH" == "image-name-contains-location" ] ; then
+- if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] ; then
   docker login -u "${DOCKER_GCP_USERNAME}" -p "${DOCKER_GCP_PASSWORD}" "${DOCKER_GCP_REGISTRY}";
   docker push "eu.gcr.io/census-rm-ci/rm/census-rm-actionsvc";
+  fi
+- if [ "$TRAVIS_BRANCH" == "image-name-contains-location" ] ; then
+  docker login -u "${DOCKER_GCP_USERNAME}" -p "${DOCKER_GCP_PASSWORD}" "${DOCKER_GCP_REGISTRY}";
+  docker tag "eu.gcr.io/census-rm-ci/rm/census-rm-actionsvc" "eu.gcr.io/census-rm-ci/rm/census-rm-actionsvc:ade_test";
+  docker push "eu.gcr.io/census-rm-ci/rm/census-rm-actionsvc:ade_test";
   fi
 - bash <(curl -s https://codecov.io/bash)
 
 cache:
   directories:
-  - $HOME/.m2
+    - $HOME/.m2
 
 branches:
-    only:
-      - master
-      - image-name-contains-location
+  only:
+    - master
+    - image-name-contains-location
