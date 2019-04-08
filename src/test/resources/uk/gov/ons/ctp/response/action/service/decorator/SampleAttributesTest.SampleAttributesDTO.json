@@ -1,0 +1,12 @@
+[
+  {
+    "id": "b27a3bb1-b35d-4279-9304-a4be83ab7ce9",
+    "attributes": {
+      "ADDRESS_LINE1": "Flat 1",
+      "ADDRESS_LINE2": "123 Fake Street",
+      "ADDRESS_LINE3": "Made Up Lane",
+      "TOWN_NAME": "Testville",
+      "POSTCODE": "AB1 2CD"
+    }
+  }
+]

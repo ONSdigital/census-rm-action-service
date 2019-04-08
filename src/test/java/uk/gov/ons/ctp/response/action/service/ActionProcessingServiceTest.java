@@ -29,7 +29,6 @@ import uk.gov.ons.ctp.response.action.config.CaseSvc;
 import uk.gov.ons.ctp.response.action.domain.model.Action;
 import uk.gov.ons.ctp.response.action.domain.model.ActionPlan;
 import uk.gov.ons.ctp.response.action.domain.model.ActionType;
-import uk.gov.ons.ctp.response.action.domain.repository.ActionPlanRepository;
 import uk.gov.ons.ctp.response.action.domain.repository.ActionRepository;
 import uk.gov.ons.ctp.response.action.message.ActionInstructionPublisher;
 import uk.gov.ons.ctp.response.action.message.instruction.ActionCancel;
@@ -71,7 +70,6 @@ public class ActionProcessingServiceTest {
   @Mock private ActionRequestContextFactory decoratorContextFactory;
 
   @Mock private ActionRepository actionRepo;
-  @Mock private ActionPlanRepository actionPlanRepo;
 
   private CaseDetailsDTO hCase;
   private CaseDetailsDTO bCase;

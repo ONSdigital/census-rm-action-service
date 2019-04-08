@@ -40,19 +40,19 @@ public class CaseNotificationService {
 
   private final CollectionExerciseClientService collectionSvcClientService;
 
-  private final SocialActionProcessingService socialActionProcessingService;
+  private final CensusActionProcessingService censusActionProcessingService;
 
   public CaseNotificationService(
       ActionCaseRepository actionCaseRepo,
       ActionPlanRepository actionPlanRepo,
       ActionService actionService,
       CollectionExerciseClientService collectionSvcClientService,
-      SocialActionProcessingService socialActionProcessingService) {
+      CensusActionProcessingService censusActionProcessingService) {
     this.actionCaseRepo = actionCaseRepo;
     this.actionPlanRepo = actionPlanRepo;
     this.actionService = actionService;
     this.collectionSvcClientService = collectionSvcClientService;
-    this.socialActionProcessingService = socialActionProcessingService;
+    this.censusActionProcessingService = censusActionProcessingService;
   }
 
   @Transactional(
@@ -80,7 +80,7 @@ public class CaseNotificationService {
         if (notification != null
             && notification.getSampleUnitType() != null
             && notification.getSampleUnitType().equalsIgnoreCase(SOCIAL_CASE_TYPE)) {
-          socialActionProcessingService.cancelFieldWorkReminder(caseId);
+          censusActionProcessingService.cancelFieldWorkReminder(caseId);
         }
         deleteActionCase(caseId);
         break;

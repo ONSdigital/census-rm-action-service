@@ -1,5 +1,6 @@
 package uk.gov.ons.ctp.response.action.domain.repository;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,4 +26,7 @@ public interface ActionRuleRepository extends JpaRepository<ActionRule, Integer>
    * @return List<ActionRule> This returns all action rules for the specified action plan.
    */
   List<ActionRule> findByActionPlanFK(Integer actionPlanFK);
+
+  List<ActionRule> findByTriggerDateTimeBeforeAndHasTriggeredIsFalse(
+      OffsetDateTime triggerDateTime);
 }

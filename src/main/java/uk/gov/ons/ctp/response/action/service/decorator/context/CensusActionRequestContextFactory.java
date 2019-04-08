@@ -12,10 +12,10 @@ import uk.gov.ons.ctp.response.action.domain.repository.ActionCaseRepository;
 import uk.gov.ons.ctp.response.sample.representation.SampleAttributesDTO;
 
 @Component
-@Qualifier("social")
-public class SocialActionRequestContextFactory implements ActionRequestContextFactory {
+@Qualifier("census")
+public class CensusActionRequestContextFactory implements ActionRequestContextFactory {
   private static final Logger log =
-      LoggerFactory.getLogger(SocialActionRequestContextFactory.class);
+      LoggerFactory.getLogger(CensusActionRequestContextFactory.class);
 
   @Autowired private ActionCaseRepository actionCaseRepo;
 

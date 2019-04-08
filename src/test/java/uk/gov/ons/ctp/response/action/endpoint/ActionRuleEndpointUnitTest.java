@@ -187,6 +187,7 @@ public final class ActionRuleEndpointUnitTest {
             "BSREM+0",
             "TEST description three",
             OffsetDateTime.now(),
+            Boolean.FALSE,
             3);
 
     when(actionRuleService.createActionRule(any(ActionRule.class))).thenReturn(actionRule);
@@ -322,6 +323,7 @@ public final class ActionRuleEndpointUnitTest {
             "BSNOT+0",
             "TEST description one",
             OffsetDateTime.now(),
+            Boolean.FALSE,
             1);
 
     when(actionRuleService.updateActionRule(any(ActionRule.class))).thenReturn(actionRule);
