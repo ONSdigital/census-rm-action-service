@@ -16,7 +16,13 @@ public class ActionAndActionPlan implements ActionRequestDecorator {
     log.with("action_id", actionID).debug("populating action request");
 
     actionRequest.setActionId(actionID);
-    actionRequest.setActionType(context.getAction().getActionType().getName());
+    String actionType = context.getAction().getActionType().getName();
+    actionRequest.setActionType(actionType);
+    actionRequest.setPackCode("");
+    if (actionType != null && dockeractionType.equals("ICL1E")) {
+      actionRequest.setPackCode("P_IC_ICL1");
+    }
+
     actionRequest.setResponseRequired(context.getAction().getActionType().getResponseRequired());
 
     actionRequest.setActionPlan(context.getActionPlan().getId().toString());

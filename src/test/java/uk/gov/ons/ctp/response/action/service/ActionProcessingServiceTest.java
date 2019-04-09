@@ -366,8 +366,6 @@ public class ActionProcessingServiceTest {
     // Given
     when(this.decoratorContextFactory.getActionRequestDecoratorContext(any(Action.class)))
         .thenReturn(context);
-
-    // When
     businessActionProcessingService.processActionRequests(ACTION_ID);
 
     // Then
